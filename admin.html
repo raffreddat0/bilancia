@@ -31,9 +31,17 @@
     
     <button onclick="sendQuery()">Esegui Query</button>
     <div id="responseContainer" style="margin-top: 20px; font-size: 16px;"></div>
+
+    <!-- New fields for model URL and password -->
+    <div style="margin-top: 20px;">
+        <input type="text" id="modelURL" placeholder="Inserisci il link del modello" style="width: 100%; padding: 10px; margin-bottom: 10px;">
+        <input type="password" id="newPassword" placeholder="Inserisci la nuova password" style="width: 100%; padding: 10px; margin-bottom: 10px;">
+        <button onclick="updateSettings()">Aggiorna Impostazioni</button>
+    </div>
+
     <script>
         function testAuth(auth) {
-            return fetch('/bilancia/db', {
+            return fetch('/settings', {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `${auth}`
@@ -63,7 +71,7 @@
 
             testAuth(auth)
             .then(() => {
-                fetch('/bilancia/db', {
+                fetch('/db', {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'text/plain',
@@ -84,6 +92,57 @@
                 alert("Password errata.");
                 localStorage.removeItem('auth');
             });
+        }
+
+        function updateSettings() {
+            const modelURL = document.getElementById('modelURL').value;
+            const newPassword = document.getElementById('newPassword').value;
+
+            let auth = localStorage.getItem('auth');
+            if (!auth) {
+                auth = prompt("Inserisci la password:");
+                localStorage.setItem('auth', auth);
+            }
+
+            testAuth(auth);
+            if (modelURL) {
+                fetch('/settings', {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                        'Authorization': `${auth}`
+                    },
+                    body: `model=${modelURL}`,
+                }).then(response => {
+                    alert("Link del modello aggiornato.");
+                    document.getElementById('modelURL').value = "";
+                }).catch(error => {
+                    alert("Errore durante l'aggiornamento del link del modello.");
+                    console.error(error);
+                });
+            }
+
+            if (newPassword) {
+                fetch('/settings', {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                        'Authorization': `${auth}`
+                    },
+                    body: `auth=${newPassword}`,
+                }).then(response => {
+                    if (response.ok) {
+                        alert("Password aggiornata.");
+                        localStorage.setItem("auth", newPassword);
+                        document.getElementById('newPassword').value = "";
+                    } else {
+                        alert("error")
+                    }
+                }).catch(error => {
+                    alert("Errore durante l'aggiornamento della password.");
+                    console.error(error);
+                });
+            }
         }
     </script>
 </body>

@@ -2,28 +2,28 @@
     body {
         font-family: Arial, sans-serif;
         text-align: center;
-        margin-top: 50px;
+        margin-top: 5vh;
     }
     button {
-        padding: 10px 20px;
-        font-size: 16px;
+        padding: 3vh 6vw;
+        font-size: 3vh;
         cursor: pointer;
     }
     #webcam-container, #label-container {
-        margin-top: 20px;
+        margin-top: 3vh;
     }
     #label-container div {
-        margin: 5px 0;
+        margin: 2vh 0;
+        font-size: 2.5vh;
     }
 </style>
 
-<h1>Teachable Machine Image Model</h1>
+<h1 style="font-size: 4vh;">Bilancia AI</h1>
 <div id="webcam-container"></div>
 <div id="label-container"></div>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 <script type="text/javascript">
-    const URL = "https://teachablemachine.withgoogle.com/models/shIcnUvP6/";
     let model, webcam, labelContainer, maxPredictions;
     let socket;
 
@@ -34,7 +34,7 @@
             localStorage.setItem('auth', auth);
         }
 
-        socket = new WebSocket(`wss://chessmaster.lol/bilancia?auth=${auth}`);
+        socket = new WebSocket(`wss://bilancia.chessmaster.lol?auth=${auth}`);
         socket.onopen = function() {
             console.log('WebSocket connection established');
         };
@@ -48,20 +48,20 @@
             localStorage.removeItem("auth");
         };
         socket.onmessage = function(event) {
-            if (event.data === "start") {
-                init();
+            if (event.data.startsWith("start")) {
+                init(event.data.split(" ")[1]);
             }
         };
     }
 
-    async function init() {
+    async function init(URL) {
         const modelURL = URL + "model.json";
         const metadataURL = URL + "metadata.json";
         model = await tmImage.load(modelURL, metadataURL);
         maxPredictions = model.getTotalClasses();
 
         const flip = true;
-        webcam = new tmImage.Webcam(300, 300, flip);
+        webcam = new tmImage.Webcam(window.innerHeight * 0.5, window.innerHeight * 0.5, flip);
         await webcam.setup();
         document.getElementById("webcam-container").appendChild(webcam.canvas);
         labelContainer = document.getElementById("label-container");

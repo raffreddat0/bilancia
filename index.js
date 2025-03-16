@@ -3,6 +3,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const http = require('http');
 const { Server } = require('ws');
+const { writeFileSync } = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -19,20 +20,46 @@ const db = new sqlite3.Database('./db.sqlite', (err) => {
   }
 });
 
-app.get('/bilancia', (req, res) => {
+app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, './index.html'));
 });
 
-app.get('/bilancia/admin', (req, res) => {
+app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, './admin.html'));
 });
 
+app.get('/model', (req, res) => {
+  res.send(process.env.model);
+});
 
-app.get('/bilancia/data', (req, res) => {
+app.patch('/settings', (req, res) => {
+  if (req.headers.authorization !== process.env.auth) {
+    res.status(401).send("unauthorized");
+    return;
+  }
+
+  const query = req.body;
+  if (query === "auth")
+    return res.status(201).send("success");
+
+  if (query.startsWith("model=")) {
+    writeFileSync("./.env", `auth=${process.env.auth}\n${query}`);
+    process.env.model = query.split("=")[1];
+    res.send("success");
+  }
+
+  if (query.startsWith("auth=")) {
+    writeFileSync("./.env", `${query}\nmodel=${process.env.model}`);
+    process.env.auth = query.split("=")[1];
+    res.send("success");
+  }
+});
+
+app.get('/data', (req, res) => {
   res.send(prediciton?.name || "null");
 });
 
-app.post('/bilancia/db', (req, res) => {
+app.post('/db', (req, res) => {
   const query = req.body;
   db.all(query, function (err, rows) {
     if (err) {
@@ -43,16 +70,13 @@ app.post('/bilancia/db', (req, res) => {
   });
 });
 
-app.patch('/bilancia/db', (req, res) => {
+app.patch('/db', (req, res) => {
   if (req.headers.authorization !== process.env.auth) {
     res.status(401).send("unauthorized");
     return;
   }
 
   const query = req.body;
-  if (query === "auth")
-    return res.status(201).send("success");
-
   db.run(query, function (err) {
     if (err) {
       res.status(500).send(err.message);
@@ -63,7 +87,7 @@ app.patch('/bilancia/db', (req, res) => {
 });
 
 const server = http.createServer(app);
-const wss = new Server({ server, path: "/bilancia" });
+const wss = new Server({ server });
 
 wss.on('connection', (ws, req) => {
   const urlParams = new URLSearchParams(req.url.split('?')[1]);
@@ -76,7 +100,7 @@ wss.on('connection', (ws, req) => {
   }
 
   console.log('Client connesso');
-  ws.send("start");
+  ws.send("start " + process.env.model);
 
   let pongTimeout;
   const heartbeat = () => {
