@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invia Query SQL</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            font-size: 16px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Bilancia Zona Admin</h1>
+    
+    <textarea id="sqlQuery" placeholder="Scrivi la tua query SQL qui..."></textarea>
+    
+    <button onclick="sendQuery()">Esegui Query</button>
+    <div id="responseContainer" style="margin-top: 20px; font-size: 16px;"></div>
+    <script>
+        function testAuth(auth) {
+            return fetch('/bilancia/db', {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `${auth}`
+                },
+                body: 'auth'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Authentication failed');
+                }
+                return response;
+            });
+        }
+
+        function sendQuery() {
+            const query = document.getElementById('sqlQuery').value;
+
+            if (!query) {
+                return;
+            }
+
+            let auth = localStorage.getItem('auth');
+            if (!auth) {
+                auth = prompt("Inserisci la password:");
+                localStorage.setItem('auth', auth);
+            }
+
+            testAuth(auth)
+            .then(() => {
+                fetch('/bilancia/db', {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                        'Authorization': `${auth}`
+                    },
+                    body: query,
+                })
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('responseContainer').innerHTML = data;
+                })
+                .catch(error => {
+                    alert("Errore durante l'invio della query.");
+                    console.error(error);
+                });
+            })
+            .catch(() => {
+                alert("Password errata.");
+                localStorage.removeItem('auth');
+            });
+        }
+    </script>
+</body>
+</html>

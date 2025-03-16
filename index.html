@@ -1,0 +1,102 @@
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin-top: 50px;
+    }
+    button {
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    #webcam-container, #label-container {
+        margin-top: 20px;
+    }
+    #label-container div {
+        margin: 5px 0;
+    }
+</style>
+
+<h1>Teachable Machine Image Model</h1>
+<div id="webcam-container"></div>
+<div id="label-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+<script type="text/javascript">
+    const URL = "https://teachablemachine.withgoogle.com/models/shIcnUvP6/";
+    let model, webcam, labelContainer, maxPredictions;
+    let socket;
+
+    function setupWebSocket() {
+        let auth = localStorage.getItem('auth');
+        if (!auth) {
+            auth = prompt("Please enter your password:");
+            localStorage.setItem('auth', auth);
+        }
+
+        socket = new WebSocket(`wss://chessmaster.lol/bilancia?auth=${auth}`);
+        socket.onopen = function() {
+            console.log('WebSocket connection established');
+        };
+        socket.onerror = function(error) {
+            console.error('WebSocket Error: ', error);
+        };
+        socket.onclose = function() {
+            console.log('WebSocket connection closed');
+            document.getElementById("webcam-container").style.display = 'none';
+            document.getElementById("label-container").innerHTML = '<div>Password incorrect</div>';
+            localStorage.removeItem("auth");
+        };
+        socket.onmessage = function(event) {
+            if (event.data === "start") {
+                init();
+            }
+        };
+    }
+
+    async function init() {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        const flip = true;
+        webcam = new tmImage.Webcam(300, 300, flip);
+        await webcam.setup();
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+        labelContainer = document.getElementById("label-container");
+        labelContainer.innerHTML = '';
+        for (let i = 0; i < maxPredictions; i++) {
+            labelContainer.appendChild(document.createElement("div"));
+        }
+
+        webcam.play();
+        window.requestAnimationFrame(loop);
+    }
+
+    async function loop() {
+        webcam.update();
+        await predict();
+        window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+        const prediction = await model.predict(webcam.canvas);
+        for (let i = 0; i < maxPredictions; i++) {
+            const classPrediction =
+                prediction[i].className.toUpperCase() + ": " + prediction[i].probability.toFixed(2);
+            if (labelContainer.childNodes[i]) {
+                labelContainer.childNodes[i].innerHTML = classPrediction;
+            }
+
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    name: prediction[i].className.toLowerCase(),
+                    probability: prediction[i].probability
+                }));
+            }
+        }
+    }
+
+    setupWebSocket();
+</script>
