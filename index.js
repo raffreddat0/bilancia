@@ -139,6 +139,10 @@ app.patch('/db', (req, res) => {
   });
 });
 
+app.use((req, res) => {
+  res.redirect('/');  
+});
+
 const server = http.createServer(app);
 const wss = new Server({ server });
 
