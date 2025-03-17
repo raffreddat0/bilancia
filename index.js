@@ -12,7 +12,7 @@ let prediciton = null;
 
 app.use(express.text());
 
-const db = new sqlite3.Database('./db.sqlite', (err) => {
+const db = new sqlite3.Database('./database.sqlite', (err) => {
   if (err) {
     console.error('Errore nella connessione al database:', err.message);
   } else {
@@ -57,6 +57,59 @@ app.patch('/settings', (req, res) => {
 
 app.get('/data', (req, res) => {
   res.send(prediciton?.name || "null");
+});
+
+app.get('/db', (req, res) => {
+  const query = "SELECT * FROM foods";
+
+  db.all(query, (err, rows) => {
+    if (err) {
+      res.status(500).send("Error fetching data");
+      return;
+    }
+
+    let table = `
+      <html>
+      <head>
+        <title>Database (Foods)</title>
+        <style>
+          table { border-collapse: collapse; width: 100%; }
+          th, td { border: 1px solid black; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+        </style>
+      </head>
+      <body>
+        <h1>Food Table</h1>
+        <table>
+          <tr>
+    `;
+
+    if (rows.length > 0) {
+      const columns = Object.keys(rows[0]);
+      columns.forEach(col => {
+        table += `<th>${col}</th>`;
+      });
+      table += `</tr>`;
+
+      rows.forEach(row => {
+        table += `<tr>`;
+        columns.forEach(col => {
+          table += `<td>${row[col]}</td>`;
+        });
+        table += `</tr>`;
+      });
+    } else {
+      table += `<tr><td colspan="100%">No data available</td></tr>`;
+    }
+
+    table += `
+        </table>
+      </body>
+      </html>
+    `;
+
+    res.send(table);
+  });
 });
 
 app.post('/db', (req, res) => {
