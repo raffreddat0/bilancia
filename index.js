@@ -116,7 +116,7 @@ app.post('/db', (req, res) => {
   const query = req.body;
   db.all(query, function (err, rows) {
     if (err) {
-      res.status(500).send("error");
+      res.status(500).send(err.message);
       return;
     }
     res.status(201).json(rows);
