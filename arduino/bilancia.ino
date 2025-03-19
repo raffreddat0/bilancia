@@ -1,5 +1,4 @@
 #include <WiFiS3.h>
-#include <SoftwareSerial.h>
 #include <ArduinoJson.h>
 #include "led.h"
 #include "wifi.h"
@@ -12,11 +11,8 @@ StaticJsonDocument<512> doc;
 char ip[] = "91.227.114.136";
 float tara0 = 0, tara = 5;
 
-SoftwareSerial mySerial(2, 3); // RX, TX
-
 void setup() {
   Serial.begin(9600);
-  mySerial.begin(9600);
   loadLed();
 
   if (WiFi.status() == WL_NO_MODULE) {
