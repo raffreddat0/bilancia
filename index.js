@@ -149,15 +149,17 @@ const wss = new Server({ server });
 wss.on('connection', (ws, req) => {
   const urlParams = new URLSearchParams(req.url.split('?')[1]);
   const auth = urlParams.get('auth');
+  const arduino = process.env.auth !== auth ;
 
-  if (!auth || process.env.auth !== auth) {
+  if (auth && process.env.auth !== auth) {
     console.log(`auth non valido`);
     ws.close();
     return;
   }
 
   console.log('Client connesso');
-  ws.send("start " + process.env.model);
+  if (!arduino)
+    ws.send("start " + process.env.model);
 
   let pongTimeout;
   const heartbeat = () => {
@@ -179,10 +181,26 @@ wss.on('connection', (ws, req) => {
   });
 
   ws.on('message', async (data) => {
-    const message = JSON.parse(data.toString());
+    if (!arduino) {
+      const message = JSON.parse(data.toString());
 
-    if ((prediciton?.probability || 0) < message.probability)
-      prediciton = message;
+      if ((prediciton?.probability || 0) < message.probability)
+        prediciton = message;
+    } else {
+      const message = data.toString();
+
+      if (!message === "info" || !prediciton?.name)
+        return;
+
+      const query = `SELECT * FROM foods WHERE nome="${prediciton?.name}"`;
+      db.all(query, function (err, rows) {
+        if (err) {
+          ws.send("error");
+          return;
+        }
+        ws.send(JSON.stringify(rows));
+      });
+    }
   });
 
   ws.on('close', () => {
