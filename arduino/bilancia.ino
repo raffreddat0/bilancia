@@ -100,11 +100,11 @@ void setup() {
 
   if (ssid.length() > 0 && password.length() > 0) {
     status = WiFi.begin(ssid.c_str(), password.c_str());
-    if (status == WL_CONNECTED)
+    if (status == WL_CONNECTED) {
       Serial.println("connected");
       socket.begin(ip, 7777);
       socket.onEvent(onEvent);
-    else
+    } else
       Serial.println("connection error");
   }
 }
@@ -123,11 +123,11 @@ void loop() {
         password = credentials.substring(spaceIndex + 1);
 
         status = WiFi.begin(ssid.c_str(), password.c_str());
-        if (status == WL_CONNECTED)
+        if (status == WL_CONNECTED) {
           Serial.println("connected");
           socket.begin(ip, 7777);
           socket.onEvent(onEvent);
-        else
+        } else
           Serial.println("connection error");
       }
     }
